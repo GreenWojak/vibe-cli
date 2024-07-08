@@ -1,23 +1,23 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
-import { Child } from './util.js'
+import { Child, mergeConfig } from './util.js'
 import dotenv from 'dotenv'
 import fs from 'fs';
 
-const configPath = `file://${process.cwd()}/vibe.config.js`
 const vibeFilePath = `.vibe`
-const config = (await import(configPath)).default
+
+let config = await mergeConfig()
 
 dotenv.config()
 
 const networkName = process.argv[3]
-const network = config.networks[networkName]
-console.log(`Forking ${networkName}`)
+const network = config.chains[networkName]
 
 const deployments = {}
 
 export async function main() {
-  config.compile.forEach(c => {
+  config.compile?.forEach(c => {
     c.contracts.forEach(contract => {
       const path = `${config.paths.out}/${c.fileName}.sol/${contract}.json`
       if (fs.existsSync(path)) {
@@ -37,6 +37,8 @@ export async function main() {
     })
   })
 
+  if (!config.deploy) return
+
   for (const c of config.deploy[networkName]) {
     for (const contract of c.contracts) {
       try {
@@ -52,12 +54,15 @@ export async function main() {
 async function deploy(c, contract) {
   console.log(`Deploying ${contract.name} to ${networkName}`)
   const path = `${config.paths.src}/${c.fileName}.sol:${contract.name}`
+  console.log(`Path: ${path}`)
   let args = contract.args ? Object.entries(contract.args).map(([key, val]) => {
     const argValue = typeof val === 'string' && val.startsWith('$') ? deployments[val.slice(1)] : val
     return `"${argValue}"`
   }).join(' ') : ''
 
-  const command = `forge create --rpc-url ${network.rpcUrl} --private-key ${network.deployerPrivateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
+  console.dir(network)
+
+  const command = `forge create --rpc-url ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --private-key ${network.deployerPrivateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
 
   const child = new Child('deploy', command)
   return new Promise((resolve, reject) => {

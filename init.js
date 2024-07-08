@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// @ts-nocheck
+// TODO: Add optional project name argument
 
 import inquirer from 'inquirer';
 import * as fs from 'fs';
@@ -9,30 +11,30 @@ import { Child } from './util.js';
 const CURR_DIR = process.cwd();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const CHOICES = fs.readdirSync(`${__dirname}/templates`);
+//const CHOICES = fs.readdirSync(`${__dirname}/templates`);
 
 let projectName = process.argv[3];
 
-const QUESTIONS = [
-  {
-    name: 'project-choice',
-    type: 'list',
-    message: 'What project template would you like to generate?',
-    choices: CHOICES,
-  },
-  {
-    name: 'project-name',
-    type: 'input',
-    message: 'Project name:',
-    validate: function (input) {
-      if (/^([A-Za-z\-\\_\d])+$/.test(input)) return true;
-      else return 'Project name may only include letters, numbers, underscores and hashes.';
-    },
-    when: () => !projectName,
-  },
-];
+// const QUESTIONS = [
+//   {
+//     name: 'project-choice',
+//     type: 'list',
+//     message: 'What project template would you like to generate?',
+//     choices: CHOICES,
+//   },
+//   {
+//     name: 'project-name',
+//     type: 'input',
+//     message: 'Project name:',
+//     validate: function (input) {
+//       if (/^([A-Za-z\-\\_\d])+$/.test(input)) return true;
+//       else return 'Project name may only include letters, numbers, underscores and hashes.';
+//     },
+//     when: () => !projectName,
+//   },
+// ];
 
-const createDirectoryContents = (templatePath, newProjectPath) => {
+const createDirectoryContents = (templatePath, projectPath) => {
   const filesToCreate = fs.readdirSync(templatePath);
 
   filesToCreate.forEach(file => {
@@ -45,35 +47,43 @@ const createDirectoryContents = (templatePath, newProjectPath) => {
 
       if (file === '.npmignore') file = '.gitignore';
 
-      const writePath = `${CURR_DIR}/${newProjectPath}/${file}`;
+      const writePath = `${projectPath}/${file}`;
       fs.writeFileSync(writePath, contents, 'utf8');
     } else if (stats.isDirectory()) {
-      fs.mkdirSync(`${CURR_DIR}/${newProjectPath}/${file}`);
+      fs.mkdirSync(`${projectPath}/${file}`);
 
-      createDirectoryContents(`${templatePath}/${file}`, `${newProjectPath}/${file}`);
+      createDirectoryContents(`${templatePath}/${file}`, `${projectPath}/${file}`);
     }
   });
 };
 export async function main() {
-  inquirer.prompt(QUESTIONS).then(answers => {
-    const projectChoice = answers['project-choice'];
-    projectName = projectName || answers['project-name'];
-    const templatePath = `${__dirname}/templates/${projectChoice}`;
+  //inquirer.prompt(QUESTIONS).then(answers => {
+  //const projectChoice = answers['project-choice'];
+  //projectName = projectName || answers['project-name'];
+  const templatePath = `${__dirname}/template`;
 
-    console.log(projectName);
+  //console.log(projectName);
 
-    fs.mkdirSync(`${CURR_DIR}/${projectName}`);
+  //fs.mkdirSync(`${CURR_DIR}/${projectName}`);
 
-    createDirectoryContents(templatePath, projectName);
+  createDirectoryContents(templatePath, CURR_DIR);
 
-    const child = new Child('init', `cd ${projectName} && npm install`);
+  // If package.json exists, make sure type is module. If not, create package.json
+  const packageJsonPath = `${CURR_DIR}/package.json`;
+  if (fs.existsSync(packageJsonPath)) {
+    const packageJson = JSON.parse(fs
+      .readFileSync(packageJsonPath)
+      .toString()
+    );
+    packageJson.type = 'module';
+    fs.writeFileSync
+      (packageJsonPath, JSON.stringify(packageJson, null, 2));
+  }
+  else {
+    fs.writeFileSync(packageJsonPath, JSON.stringify({ type: 'module' }, null, 2));
+  }
 
-    child.onData = (data) => {
-      console.log(data.toString());
-    };
+  console.log('Project initialized');
 
-    child.onClose = (code) => {
-      console.log('Project created');
-    };
-  });
+  const child = new Child('init', `npm install`);
 }

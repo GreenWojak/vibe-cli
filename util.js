@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
 import { spawn } from 'child_process'
+import { default as defaultConfig } from './config.js'
 
 export class Child {
   child = null
@@ -41,5 +43,37 @@ export class Child {
 
   kill() { 
     this.child.kill() 
+  }
+}
+
+export async function mergeConfig() {
+  try {
+    const newConfig = (await import(`file://${process.cwd()}/vibe.config.js`)).default
+    let config = {
+      paths: {
+        src: newConfig.paths?.src ?? defaultConfig.paths.src,
+        out: newConfig.paths?.out ?? defaultConfig.paths.out,
+        scripts: newConfig.paths?.scripts ?? defaultConfig.paths.scripts,
+        dest: newConfig.paths?.dest ?? defaultConfig.paths.dest
+      },
+      chains: {},
+      compile: newConfig.compile,
+      deploy: newConfig.deploy,
+      calls: newConfig.calls
+    }
+    console.dir(config.calls)
+    Object.keys(defaultConfig.chains).forEach(c => {
+      let newChain
+      Object.keys(newConfig.chains).forEach(nc => {
+        if (nc === c) newChain = newConfig.chains[nc]
+      })
+      if (newChain) config.chains[c] = { ...defaultConfig.chains[c], ...newChain }
+      else config.chains[c] = defaultConfig.chains[c]
+    })
+    return config
+  }
+  catch (e) {
+    console.error(`Failed to load config: ${e}`)
+    return defaultConfig
   }
 }

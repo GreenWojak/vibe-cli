@@ -1,45 +1,32 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
-import { Child } from './util.js'
-const configPath = `file://${process.cwd()}/vibe.config.js`
-const config = (await import(configPath)).default
+import { Child, mergeConfig } from './util.js'
 import dotenv from 'dotenv'
 import { spawn } from 'child_process';
 import inquirer from 'inquirer';
+
 dotenv.config()
 
+let config = await mergeConfig()
+
 const networkName = process.argv[3]
-const network = config.networks[networkName]
+const network = config.chains[networkName]
+const localhost = config.chains.localhost
 console.log(`Forking ${networkName}`)
 const doDeploy = process.argv.includes('-d') || process.argv.includes('--deploy')
-
 let forkChild = null
 
 export async function main() {
-  if (network.rpcUrl) {
+  if (network.rpcUrls.default.http || network.rpcUrls[0]) {
     startFork()
   } else {
     console.log(`No rpcUrl for ${networkName}`)
   }
 }
 
-const killFork = async () => {
-  if (process.platform === 'win32') {
-    const child = new Child('kill', 'Stop-Process -Id (Get-NetTCPConnection -LocalPort 8545).OwningProcess -Force', { env: "powershell", respawn: false })
-    child.onClose = (code) => {
-      startFork()
-    }
-  }
-  else {
-    const child = new Child('kill', 'kill -9 $(lsof -t -i:8545)', { respawn: false })
-    child.onClose = (code) => {
-      startFork()
-    }
-  }
-}
-
 const startFork = () => {
-  forkChild = new Child('fork', `anvil --host 0.0.0.0 --fork-url ${network?.rpcUrl} --chain-id 31337 --balance 10000000000000000000 --slots-in-an-epoch 1`)
+  forkChild = new Child('fork', `anvil --host 0.0.0.0 --fork-url ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --chain-id ${localhost.id} --balance 10000000000000000000 --slots-in-an-epoch 1`, { respawn: false })
 
   const terminateForkChild = () => {
     if (forkChild) {
@@ -81,7 +68,7 @@ const startFork = () => {
       process.argv[3] = 'localhost'
       await (await import("./deploy.js")).main();
     }
-    if (network.forkParticipants[0]) {
+    if (network.forkParticipants && network.forkParticipants[0]) {
       const supply = await import("./supply.js")
       const child2 = new Child('impersonate', `cast rpc anvil_impersonateAccount 0x70997970C51812dc3A010C7d01b50e0d17dc79C8`)
       
@@ -113,7 +100,7 @@ const startFork = () => {
     }
     if (doDeploy) {
       process.argv[3] = 'localhost'
-      network.forkCalls.forEach(async (call) =>	{
+      network.forkCalls?.forEach(async (call) =>	{
         const args = call.split(' ')
         process.argv[4] = args[0]
         process.argv[5] = args[1]
@@ -153,6 +140,3 @@ async function curl(method, params) {
     });
   })
 }
-
-// For when you need to kill the fork
-// kill -9 $(lsof -t -i:8545)

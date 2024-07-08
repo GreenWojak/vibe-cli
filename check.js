@@ -1,12 +1,13 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
-import { Child } from './util.js'
-
-const configPath = `file://${process.cwd()}/vibe.config.js`
-const config = (await import(configPath)).default
+import { Child, mergeConfig } from './util.js'
+import { default as defaultConfig } from './config.js'
 
 export async function main() {
+  const config = await mergeConfig()
   let rpcUrl;
+  
   try {
     rpcUrl = process.argv[3] ? ("--fork-url " + config.networks[process.argv[3]].rpcUrl) : ''
   } catch (e) {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
 import inquirer from "inquirer";
 import { Child } from './util.js'
@@ -37,6 +38,10 @@ if (arg) {
         console.log("Installing Foundry...");
         const child = new Child('install', 'curl -L https://foundry.paradigm.xyz | bash')
 
+        child.onError = (error) => {
+          console.error(error)
+        }
+
         // If the command is successful, run the next command
         child.onClose = async (code) => {
           // Run the next command
@@ -63,6 +68,8 @@ if (arg) {
       }
     }
   }
+} else {
+  console.log("Hello via Vibe CLI!");
 }
 
 async function main() {
@@ -81,6 +88,6 @@ async function main() {
   } else if (arg === "supply") {
     await (await import("./supply.js")).main();
   } else {
-    console.log("Hello via Vibe CLI!");
+    console.log("Invalid command. Please use one of the following commands: init, fork, deploy, compile, check, call, supply.");
   }
 }

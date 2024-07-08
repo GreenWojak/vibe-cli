@@ -1,4 +1,3 @@
-import chains from '@wagmi/core/chains'
 export default {
   paths: {
     src: 'contracts/src',
@@ -6,5 +5,7 @@ export default {
     scripts: 'contracts/scripts',
     dest: ['contracts/deployed']
   },
-  chains
+  chains: {
+    ...(await import('@wagmi/core/chains'))
+  }
 }

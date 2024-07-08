@@ -1,10 +1,10 @@
 {
   "name": "vibe-cli",
-  "version": "0.7.15",
-  "module": "index.ts",
+  "version": "0.8.3",
+  "module": "index.js",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/node": "^20.14.5"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -13,7 +13,7 @@
     "vibe": "./index.js"
   },
   "dependencies": {
-    "@wagmi/core": "^2.10.5",
+    "@wagmi/core": "^2.11.2",
     "dotenv": "^16.4.5",
     "inquirer": "^9.2.19"
   }

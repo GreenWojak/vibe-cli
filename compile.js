@@ -1,10 +1,11 @@
 #!/usr/bin/env node
+// @ts-nocheck
+
+import { Child, mergeConfig } from './util.js'
+import fs from 'fs'
 
 const cwd = process.cwd()
-const configPath = `file://${process.cwd()}/vibe.config.js`
-import { Child } from './util.js'
-const config = (await import(configPath)).default
-import fs from 'fs'
+const config = await mergeConfig()
 
 export async function main() {
   const child = new Child('compile', 'forge build --via-ir')

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
+// @ts-nocheck
 
 import fs from 'fs'
 import path from 'path';
-import { Child } from './util.js'
+import { Child, mergeConfig } from './util.js'
 
 export async function main() {
-  const configPath = `file://${process.cwd()}/vibe.config.js`
-  const config = (await import(configPath)).default
+  const config = await mergeConfig()
   const vibeFilePath = path.join(process.cwd(), '.vibe')
   const deployments = {};
 
@@ -32,9 +32,11 @@ export async function main() {
     console.error(`Failed to read or parse the file: ${error}`)
   }
 
+  console.dir(config.calls)
+
   const scriptsPath = config.paths.scripts
   const networkName = process.argv[3]
-  const network = config.networks[networkName]
+  const network = config.chains[networkName]
   const calls = config.calls[networkName]
   const call = calls[process.argv[4]]
   const script = `${path.join(process.cwd(), scriptsPath, call.fileName)}.s.sol:${call.script}`
@@ -50,7 +52,7 @@ export async function main() {
   }
 
   await new Promise((resolve, reject) => {
-    const child = new Child('call', `forge script ${script} --via-ir -f ${network.rpcUrl} --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
+    const child = new Child('call', `forge script ${script} --via-ir -f ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
     child.onData = (data) => {
       console.log(data.toString())
     }

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// vibe supply localhost 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+// @ts-nocheck
 
-import { Child } from './util.js'
+import { Child, mergeConfig } from './util.js'
 import dotenv from 'dotenv'
-const configPath = `file://${process.cwd()}/vibe.config.js`
-const config = (await import(configPath)).default
+
+const config = await mergeConfig()
 
 dotenv.config()
 
@@ -13,18 +13,18 @@ let address
 
 export async function main() {
   const networkName = process.argv[3]
-  network = config.networks[networkName]
+  network = config.chains[networkName]
   address = process.argv[4]
-  if (network.rpcUrl) {
+  //if (network.rpcUrl) {
     try {
       await transfer(address)
     } catch (error) {
       console.error(error)
       process.exit(1)
     }
-  } else {
-    console.log(`No rpcUrl for ${networkName}`)
-  }
+  //} else {
+  //  console.log(`No rpcUrl for ${networkName}`)
+  //}
 }
 
 const transfer = (address) => {
