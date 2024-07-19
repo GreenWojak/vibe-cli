@@ -15,10 +15,11 @@ const network = config.chains[networkName]
 const localhost = config.chains.localhost
 console.log(`Forking ${networkName}`)
 const doDeploy = process.argv.includes('-d') || process.argv.includes('--deploy')
+const doPrune = process.argv.includes('-p') || process.argv.includes('--prune-history')
 let forkChild = null
 
 export async function main() {
-  if (network.rpcUrls.default.http || network.rpcUrls[0]) {
+  if (network.rpcUrls.default?.http || network.rpcUrls[0]) {
     startFork()
   } else {
     console.log(`No rpcUrl for ${networkName}`)
@@ -26,7 +27,7 @@ export async function main() {
 }
 
 const startFork = () => {
-  forkChild = new Child('fork', `anvil --host 0.0.0.0 --fork-url ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --chain-id ${localhost.id} --balance 10000000000000000000 --slots-in-an-epoch 1`, { respawn: false })
+  forkChild = new Child('fork', `anvil --host 0.0.0.0 --fork-url ${network?.rpcUrls.default?.http ?? network?.rpcUrls[0] } --chain-id ${localhost.id} ${doPrune ? '--prune-history' : ''} --balance 10000000000000000000 --slots-in-an-epoch 1`, { respawn: false })
 
   const terminateForkChild = () => {
     if (forkChild) {

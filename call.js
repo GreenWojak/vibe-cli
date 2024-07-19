@@ -51,6 +51,8 @@ export async function main() {
     args[key] = value;
   }
 
+  args['DEV_PRIVATE_KEY'] = network.deployerPrivateKey
+
   await new Promise((resolve, reject) => {
     const child = new Child('call', `forge script ${script} --via-ir -f ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
     child.onData = (data) => {

@@ -131,7 +131,7 @@ function updateDeploymentFiles(c, contractName, deploymentAddress) {
       json = JSON.parse(fs.readFileSync(path))
     }
     json.deployments = json.deployments || {}
-    json.deployments[network?.chainId] = deploymentAddress
+    json.deployments[network?.id] = deploymentAddress
     fs.writeFileSync(filePath, JSON.stringify(json, null, 2))
   });
 }

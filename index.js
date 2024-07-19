@@ -4,6 +4,8 @@
 import inquirer from "inquirer";
 import { Child } from './util.js'
 import { exec } from "child_process";
+import { createRequire } from "module";
+const p = createRequire(import.meta.url)("./package.json");
 
 // Get first argument
 const arg = process.argv[2];
@@ -11,7 +13,9 @@ const arg = process.argv[2];
 // Routing based on the first argument
 
 // Check if arg is not empty
-if (arg) {
+if (arg === "--version" || arg === "-v") {
+  console.log(p.version);
+} else if (arg) {
   // If so, check if Foundry is installed
   // Try running "forge --help"
   const child = new Child('check', 'forge --help')

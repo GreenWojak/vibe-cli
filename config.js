@@ -1,9 +1,9 @@
 export default {
   paths: {
-    src: 'contracts/src',
-    out: 'contracts/out',
-    scripts: 'contracts/scripts',
-    dest: ['contracts/deployed']
+    src: 'vibe/src',
+    out: 'vibe/out',
+    scripts: 'vibe/scripts',
+    dest: ['vibe/deployed']
   },
   chains: {
     ...(await import('@wagmi/core/chains'))

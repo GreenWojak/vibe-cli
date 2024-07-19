@@ -3,6 +3,7 @@
 
 import { spawn } from 'child_process'
 import { default as defaultConfig } from './config.js'
+import fs from 'fs'
 
 export class Child {
   child = null
@@ -48,6 +49,10 @@ export class Child {
 
 export async function mergeConfig() {
   try {
+    if (!fs.existsSync(`file://${process.cwd()}/vibe.config.js`)) {
+      console.warn(`No config file found at ${process.cwd()}/vibe.config.js, using default config`)
+      return defaultConfig
+    }
     const newConfig = (await import(`file://${process.cwd()}/vibe.config.js`)).default
     let config = {
       paths: {
@@ -57,18 +62,19 @@ export async function mergeConfig() {
         dest: newConfig.paths?.dest ?? defaultConfig.paths.dest
       },
       chains: {},
-      compile: newConfig.compile,
-      deploy: newConfig.deploy,
-      calls: newConfig.calls
+      compile: newConfig.compile ?? {},
+      deploy: newConfig.deploy ?? {},
+      calls: newConfig.calls ?? {}
     }
-    console.dir(config.calls)
     Object.keys(defaultConfig.chains).forEach(c => {
-      let newChain
-      Object.keys(newConfig.chains).forEach(nc => {
-        if (nc === c) newChain = newConfig.chains[nc]
-      })
+      if (newConfig.chains === undefined) newConfig.chains = {}
+      let newChain = newConfig.chains != undefined && Object.keys(newConfig.chains).includes(c) ? newConfig.chains[c] : null
       if (newChain) config.chains[c] = { ...defaultConfig.chains[c], ...newChain }
       else config.chains[c] = defaultConfig.chains[c]
+      if (c === 'localhost' && config.chains[c].deployerPrivateKey === undefined) {
+        // Anvil default for localhost (publically known private key, do not use in production)
+        config.chains[c].deployerPrivateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+      }
     })
     return config
   }

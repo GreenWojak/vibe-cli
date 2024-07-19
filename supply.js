@@ -53,8 +53,9 @@ const transfer = (address) => {
 }
 
 const tokenTransfer = async (address, transferIndex) => {
-  const forkTransfer = network.forkTransfers[transferIndex]
   return new Promise((resolve, reject) => {
+    if (!network.forkTransfers) resolve()
+    const forkTransfer = network.forkTransfers[transferIndex]
     const child4 = new Child('impersonate', `cast rpc anvil_impersonateAccount ${forkTransfer.from}`)
     child4.onData = (data) => {
       console.log(data.toString())
