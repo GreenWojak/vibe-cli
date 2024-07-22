@@ -9,7 +9,7 @@ export async function main() {
   let rpcUrl;
   
   try {
-    rpcUrl = process.argv[3] ? ("--fork-url " + config.networks[process.argv[3]].rpcUrl) : ''
+    rpcUrl = process.argv[3] ? ("--fork-url " + config.chains[process.argv[3]].rpcUrl) : ''
   } catch (e) {
     console.error('Invalid network: ' + process.argv[3])
     process.exit(1)

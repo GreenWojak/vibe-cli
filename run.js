@@ -32,15 +32,13 @@ export async function main() {
     console.error(`Failed to read or parse the file: ${error}`)
   }
 
-  console.dir(config.calls)
-
   const scriptsPath = config.paths.scripts
   const networkName = process.argv[3]
   const network = config.chains[networkName]
-  const calls = config.calls[networkName]
-  const call = calls[process.argv[4]]
-  const script = `${path.join(process.cwd(), scriptsPath, call.fileName)}.s.sol:${call.script}`
-  console.log(script)
+  const scripts = config.scripts[networkName]
+  const script = scripts[process.argv[4]]
+  const scriptPath = `${path.join(process.cwd(), scriptsPath, script.fileName)}.s.sol:${script.script}`
+  console.log(`Calling script: ${scriptPath}`)
 
   const args = {}
   for (let i = 5; i < process.argv.length; i++) {
@@ -51,10 +49,10 @@ export async function main() {
     args[key] = value;
   }
 
-  args['DEV_PRIVATE_KEY'] = network.deployerPrivateKey
+  args['DEV_PRIVATE_KEY'] = network.privateKey
 
   await new Promise((resolve, reject) => {
-    const child = new Child('call', `forge script ${script} --via-ir -f ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
+    const child = new Child('call', `forge script ${scriptPath} --via-ir -f ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
     child.onData = (data) => {
       console.log(data.toString())
     }

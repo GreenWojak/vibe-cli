@@ -1,13 +1,4 @@
 export default {
-  chains: {
-    polygon: {
-      rpcUrls: {
-        default: {
-          http: "https://polygon.rpc.blxrbdn.com"
-        }
-      },
-    }
-  },
   compile: [
     { fileName: "Counter", contracts: ["Counter"] },
   ],
@@ -18,7 +9,7 @@ export default {
       },
     ]
   },
-  calls: {
+  scripts: {
     localhost: {
       increment: { fileName: "Counter", script: "Increment"  },
       decrement: { fileName: "Counter", script: "Decrement"  }

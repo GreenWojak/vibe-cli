@@ -8,16 +8,30 @@ import { createRequire } from "module";
 const p = createRequire(import.meta.url)("./package.json");
 
 // Get first argument
-const arg = process.argv[2];
+const cmd = process.argv[2]
 
-// Routing based on the first argument
+if (cmd === "version") {
+  console.log(p.version)
 
-// Check if arg is not empty
-if (arg === "--version" || arg === "-v") {
-  console.log(p.version);
-} else if (arg) {
-  // If so, check if Foundry is installed
-  // Try running "forge --help"
+} else if (cmd === "help") {
+  console.log("Vibe CLI - A Foundry wrapper that supercharges and simplifies your decentralised application workflow.")
+  console.log("Available commands:")
+
+  console.log("vibe init                            - Initialize a new Vibe project")
+  console.log("vibe fork <network> [-d]             - Fork a network")
+  console.log("   -d: Deploy contracts after forking")
+  console.log("vibe compile                         - Compile contracts")
+  console.log("vibe deploy <network>                - Deploy contracts")
+  console.log("vibe run <network> <command> [args]  - Run a Solidity script on a network")
+  console.log("vibe check <network>                 - Runs tests on a network")
+  console.log("vibe supply <network> <address>      - Supply an address with tokens")
+  console.log("vibe version                         - Print the version of the Vibe CLI")
+
+  console.log("For more information, check the readme at https://github.com/GreenWojak/vibe-cli")
+  console.log("Vibe CLI version: " + p.version)
+} else if (cmd) {
+  // Check if Foundry is installed
+  // by trying to run "forge --help"
   const child = new Child('check', 'forge --help')
 
   // If the command is successful, Foundry is installed
@@ -37,32 +51,39 @@ if (arg === "--version" || arg === "-v") {
         },
       ]);
 
-      // If the user wants to install Foundry, run the install commands: "curl -L https://foundry.paradigm.xyz | bash" and "foundryup"
+      // If the user wants to install Foundry, run the install script at "https://foundry.paradigm.xyz"
       if (install) {
         console.log("Installing Foundry...");
         const child = new Child('install', 'curl -L https://foundry.paradigm.xyz | bash')
+
+        let sourceCommand = ""
 
         child.onError = (error) => {
           console.error(error)
         }
 
-        // If the command is successful, run the next command
+        child.onData = (data) => {
+          // Grab detected profile source command from installer output
+          if (data.toString().includes("start a new terminal")) {
+            sourceCommand = data.toString().match(/source [^']+/)[0]
+          }
+        }
         child.onClose = async (code) => {
-          // Run the next command
-          const child = new Child('install', 'source /root/.bashrc')
+          // If install script is successful and source command is found, source current profile
+          if (code === 0 && sourceCommand) {
+            const child = new Child('install', sourceCommand)
 
-          // If the command is successful, run the next command
-          child.onClose = async (code) => {
-            // Run the next command
-            const child = new Child('install', 'foundryup')
-
-            child.onData = (data) => {
-              console.log(data.toString())
-            }
-
-            // If the command is successful, run the main function
             child.onClose = async (code) => {
-              await main();
+              const child = new Child('install', 'foundryup')
+
+              child.onData = (data) => {
+                console.log(data.toString())
+              }
+
+              // If the command is successful, run the main function
+              child.onClose = async (code) => {
+                await main();
+              }
             }
           }
         }
@@ -74,24 +95,25 @@ if (arg === "--version" || arg === "-v") {
   }
 } else {
   console.log("Hello via Vibe CLI!");
+  console.log("Please use \"vibe help\" to see the available commands.");
 }
 
 async function main() {
-  if (arg === "init") {
+  if (cmd === "init") {
     await (await import("./init.js")).main();
-  } else if (arg === "fork") {
+  } else if (cmd === "fork") {
     await (await import("./fork.js")).main();
-  } else if (arg === "deploy") {
+  } else if (cmd === "deploy") {
     await (await import("./deploy.js")).main();
-  } else if (arg === "compile") {
+  } else if (cmd === "compile") {
     await (await import("./compile.js")).main();
-  } else if (arg === "check") {
+  } else if (cmd === "check") {
     await (await import("./check.js")).main();
-  } else if (arg === "call") {
-    await (await import("./call.js")).main();
-  } else if (arg === "supply") {
+  } else if (cmd === "run") {
+    await (await import("./run.js")).main();
+  } else if (cmd === "supply") {
     await (await import("./supply.js")).main();
   } else {
-    console.log("Invalid command. Please use one of the following commands: init, fork, deploy, compile, check, call, supply.");
+    console.log("Invalid command. Please type \"vibe help\" to see the available commands.")
   }
 }

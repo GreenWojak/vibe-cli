@@ -62,7 +62,7 @@ async function deploy(c, contract) {
 
   console.dir(network)
 
-  const command = `forge create --rpc-url ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --private-key ${network.deployerPrivateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
+  const command = `forge create --rpc-url ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --private-key ${network.privateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
 
   const child = new Child('deploy', command)
   return new Promise((resolve, reject) => {
@@ -74,7 +74,7 @@ async function deploy(c, contract) {
 
         try {
           let vibeContent;
-          // Check if the file exists, if not, initialize an empty string
+          // Check if .vibe exists, if not, it will be created later
           if (fs.existsSync(vibeFilePath)) {
             vibeContent = fs.readFileSync(vibeFilePath, 'utf8')
             //console.log(`Original content: ${vibeContent}`);
@@ -85,10 +85,10 @@ async function deploy(c, contract) {
       
           // Construct the key with network name
           const entryKey = `${networkName}.${contract.name}`
-          const regexPattern = new RegExp(`^${entryKey}=0x[0-9a-fA-F]{40}$`, "gm") // 'gm' flag for multiline match
+          const regexPattern = new RegExp(`^${entryKey}=0x[0-9a-fA-F]{40}$`, "gm") // 'gm' for global and multiline
       
           if (regexPattern.test(vibeContent)) {
-            // Pattern exists, replace it
+            // Pattern exists, update it (replace the old deployment address with the new one)
             const updatedVibeContent = vibeContent.replace(regexPattern, `${entryKey}=${deployment}`)
             fs.writeFileSync(vibeFilePath, updatedVibeContent)
             console.log('Entry updated successfully.')

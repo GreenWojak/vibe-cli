@@ -49,12 +49,13 @@ export class Child {
 
 export async function mergeConfig() {
   try {
-    if (!fs.existsSync(`file://${process.cwd()}/vibe.config.js`)) {
+    if (!fs.existsSync(`${process.cwd()}/vibe.config.js`)) {
       console.warn(`No config file found at ${process.cwd()}/vibe.config.js, using default config`)
       return defaultConfig
     }
     const newConfig = (await import(`file://${process.cwd()}/vibe.config.js`)).default
     let config = {
+      port: newConfig.port ?? 8545,
       paths: {
         src: newConfig.paths?.src ?? defaultConfig.paths.src,
         out: newConfig.paths?.out ?? defaultConfig.paths.out,
@@ -64,16 +65,16 @@ export async function mergeConfig() {
       chains: {},
       compile: newConfig.compile ?? {},
       deploy: newConfig.deploy ?? {},
-      calls: newConfig.calls ?? {}
+      scripts: newConfig.scripts ?? {}
     }
     Object.keys(defaultConfig.chains).forEach(c => {
       if (newConfig.chains === undefined) newConfig.chains = {}
       let newChain = newConfig.chains != undefined && Object.keys(newConfig.chains).includes(c) ? newConfig.chains[c] : null
       if (newChain) config.chains[c] = { ...defaultConfig.chains[c], ...newChain }
       else config.chains[c] = defaultConfig.chains[c]
-      if (c === 'localhost' && config.chains[c].deployerPrivateKey === undefined) {
+      if (c === 'localhost' && config.chains[c].privateKey === undefined) {
         // Anvil default for localhost (publically known private key, do not use in production)
-        config.chains[c].deployerPrivateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+        config.chains[c].privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
       }
     })
     return config
@@ -82,4 +83,32 @@ export async function mergeConfig() {
     console.error(`Failed to load config: ${e}`)
     return defaultConfig
   }
+}
+
+export async function curl(method, params) {
+  return new Promise(async (resolve, reject) => {
+    const config = await mergeConfig()
+    const curl = spawn('curl', [
+      '-H', 'Content-Type: application/json',
+      '-d', `{"id":1, "jsonrpc":"2.0", "method":"${method}", "params":[${params}]}`,
+      'http://localhost:' + config.port
+    ]);
+    
+    curl.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`)
+    });
+    
+    curl.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`)
+    });
+    
+    curl.on('close', (code) => {
+        console.log(`child process exited with code ${code}`)
+        if (code === 0) {
+          resolve()
+        } else {
+          reject()
+        }
+    });
+  })
 }
