@@ -1,6 +1,6 @@
 {
   "name": "vibe-cli",
-  "version": "0.9.0",
+  "version": "0.9.3",
   "module": "index.js",
   "type": "module",
   "devDependencies": {

@@ -2,7 +2,7 @@
 
 A CLI tool/wrapper around [Foundry](https://book.getfoundry.sh/) that supercharges and simplifies your decentralised application workflow.
 
-Vibe-CLI allows you to easily fork, compile, deploy, and call contracts on various networks. It also allows you to easilytest your contracts, and interact with your contracts using scripts.
+Vibe-CLI allows you to easily fork, compile, deploy, and call contracts on various networks. It also allows you to easily test your contracts, and interact with your contracts using scripts.
 
 Check out the [example project](https://github.com/GreenWojak/vibe-cli-example).
 

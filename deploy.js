@@ -62,7 +62,7 @@ async function deploy(c, contract) {
 
   console.dir(network)
 
-  const command = `forge create --rpc-url ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --private-key ${network.privateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
+  const command = `forge create --rpc-url ${network?.rpcUrls.default?.http ?? network?.rpcUrls[0] } --private-key ${network.privateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
 
   const child = new Child('deploy', command)
   return new Promise((resolve, reject) => {

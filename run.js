@@ -8,7 +8,7 @@ import { Child, mergeConfig } from './util.js'
 export async function main() {
   const config = await mergeConfig()
   const vibeFilePath = path.join(process.cwd(), '.vibe')
-  const deployments = {};
+  const deployments = {}
 
   try {
     const vibeContent = fs.readFileSync(vibeFilePath, 'utf8')
@@ -38,35 +38,35 @@ export async function main() {
   const scripts = config.scripts[networkName]
   const script = scripts[process.argv[4]]
   const scriptPath = `${path.join(process.cwd(), scriptsPath, script.fileName)}.s.sol:${script.script}`
-  console.log(`Calling script: ${scriptPath}`)
+  console.log(`Running script: ${scriptPath}`)
 
   const args = {}
   for (let i = 5; i < process.argv.length; i++) {
-    args[`ARG${i - 5}`] = process.argv[i];
+    args[`ARG${i - 5}`] = process.argv[i]
   }
 
   for (const [key, value] of Object.entries(deployments[networkName])) {
-    args[key] = value;
+    args[key] = value
   }
 
   args['DEV_PRIVATE_KEY'] = network.privateKey
 
   await new Promise((resolve, reject) => {
-    const child = new Child('call', `forge script ${scriptPath} --via-ir -f ${network?.rpcUrls.default.http ?? network?.rpcUrls[0] } --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
+    const child = new Child('script', `forge script ${scriptPath} --via-ir -f ${network?.rpcUrls.default?.http ?? network?.rpcUrls[0] } --broadcast --priority-gas-price 1`, {cwd: process.cwd(), env: { ...process.env, ...args }});
     child.onData = (data) => {
       console.log(data.toString())
     }
     child.onClose = (code) => {
-      console.log(`Call script finished with code ${code}`);
+      console.log(`Script finished with code ${code}`)
       if (code === 0) {
-        resolve();
+        resolve()
       } else {
-        reject();
+        reject()
       }
     }
     child.onError = (error) => {
-      console.error(`Error: ${error}`);
-      reject();
+      console.error(`Error: ${error}`)
+      reject()
     }
   })
 }
