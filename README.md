@@ -116,7 +116,7 @@ It will run the tests located in the `vibe/tests` directory of your project (unl
     - <kbd>rpcUrls</kbd>: An array of RPC URLs
     - <kbd>privateKey</kbd>: The private key that will deploy contracts and call scripts
     - <kbd>forkBlockNr</kbd>: The block number to fork from (defaults to the latest block)
-    - <kbd>forkCalls</kbd>: An array of calls to be made upon forking the chain (e.g. `["name arg1 arg2"]`)
+    - <kbd>forkScripts</kbd>: An array of scripts to be ran upon forking the chain (e.g. `["name arg1 arg2"]`)
     - <kbd>supplyAddresses</kbd>: An array of addresses that will receive the starting balance and supply tokens upon forking
     - <kbd>supplyBalance</kbd>: The starting balance of the account
     - <kbd>supplyTokens</kbd>: An array of objects that represent the tokens to supply
