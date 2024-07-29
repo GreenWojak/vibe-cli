@@ -1,6 +1,6 @@
 {
   "name": "vibe-cli",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "module": "index.js",
   "type": "module",
   "devDependencies": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "@wagmi/core": "^2.11.2",
     "dotenv": "^16.4.5",
-    "inquirer": "^9.2.19"
+    "inquirer": "^9.2.19",
+    "viem": "^2.18.4"
   }
 }

@@ -80,9 +80,30 @@ if (cmd === "version") {
                 console.log(data.toString())
               }
 
-              // If the command is successful, run the main function
+              // // If the command is successful, run the main function
+              // child.onClose = async (code) => {
+              //   await main();
+              // }
+
+              // If the command is successful, run "forge install"
               child.onClose = async (code) => {
-                await main();
+                if (code === 0) {
+                  const child = new Child('install', 'forge install')
+
+                  child.onData = (data) => {
+                    console.log(data.toString())
+                  }
+
+                  child.onClose = async (code) => {
+                    if (code === 0) {
+                      await main();
+                    } else {
+                      console.log("Failed to install Foundry. Please try again.")
+                    }
+                  }
+                } else {
+                  console.log("Failed to install Foundry. Please try again.")
+                }
               }
             }
           }

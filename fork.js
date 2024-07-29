@@ -82,7 +82,7 @@ const startFork = () => {
     if (doDeploy) {
       console.log(`Deploying contracts to ${networkName}...`)
       process.argv[3] = 'localhost'
-      await (await import("./deploy.js")).main()
+      await (await import("./create2.js")).main()
     }
     if (network.supplyAddresses && network.supplyAddresses[0]) {
       const supply = await import("./supply.js")
@@ -123,7 +123,11 @@ const startFork = () => {
         await (await import("./run.js")).main();
       })
     }
-    await curl('evm_setIntervalMining', '5').then(() => { console.debug('Interval mining set') })
+
+    await curl('evm_setIntervalMining', network.forkBlockTime?.toString() ?? '5').then(() => { 
+      console.debug('Mining interval set to ' + (network.forkBlockTime?.toString() ?? '5') + ' seconds')
+    })
+
     forkChild.onData = async (data) => {
       console.log(data.toString())
     }
