@@ -6,6 +6,6 @@ export default {
     dest: ['vibe/deployed']
   },
   chains: {
-    ...(await import('@wagmi/core/chains'))
+    ...(await import('viem/chains'))
   }
 }
