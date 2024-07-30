@@ -75,6 +75,10 @@ export async function mergeConfig() {
       let newChain = newConfig.chains != undefined && Object.keys(newConfig.chains).includes(c) ? newConfig.chains[c] : null
       if (newChain) config.chains[c] = { ...defaultConfig.chains[c], ...newChain }
       else config.chains[c] = defaultConfig.chains[c]
+
+      if (!config.chains[c].rpcUrls.default)  config.chains[c].rpcUrls.default = {}
+      config.chains[c].rpcUrls.default.http = config.chains[c].rpcUrls.default?.http ?? config.chains[c].rpcUrls[0]
+
       if (c === 'localhost' && config.chains[c].privateKey === undefined) {
         // Anvil default for localhost (publically known private key, do not use in production)
         config.chains[c].privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
