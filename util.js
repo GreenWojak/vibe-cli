@@ -16,12 +16,15 @@ export class Child {
   detached = false
   env = null
 
-  constructor(name, command, options={args: null, respawn: true, detached: false, env: null}) {
+  constructor(name, command, options={args: null, respawn: true, detached: false, env: null, onData: null, onClose: null, onError: null}) {
     this.name = name
     this.command = command
     this.args = options.args
     this.detached = options.detached
     this.env = options.env
+    this.onData = options.onData
+    this.onClose = options.onClose
+    this.onError = options.onError
     this.respawn(options.respawn)
   }
 
@@ -92,23 +95,25 @@ export async function curl(method, params) {
       '-H', 'Content-Type: application/json',
       '-d', `{"id":1, "jsonrpc":"2.0", "method":"${method}", "params":[${params}]}`,
       'http://localhost:' + config.port
-    ]);
+    ])
     
     curl.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`)
-    });
+      console.log(`stdout: ${data}`)
+    })
     
     curl.stderr.on('data', (data) => {
-        console.error(`stderr: ${data}`)
-    });
+      console.error(`stderr: ${data}`)
+    })
     
     curl.on('close', (code) => {
+      if (code === 0) {
+        resolve()
+      } else {
         console.log(`child process exited with code ${code}`)
-        if (code === 0) {
-          resolve()
-        } else {
-          reject()
-        }
-    });
+        reject()
+      }
+    })
   })
 }
+
+

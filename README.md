@@ -99,6 +99,14 @@ vibe check <network>
 
 It will run the tests located in the `vibe/tests` directory of your project (unless specified otherwise in the config) on the network specified in the command using `forge test`.
 
+### Running RPC methods
+
+```bash
+vibe curl <method> [args]
+```
+
+This command will run the RPC method specified in the command with the provided arguments on the currently forked network (e.g. `vibe curl evm_setIntervalMining 2`).
+
 ### vibe.config.js Structure
 
 > [!NOTE]

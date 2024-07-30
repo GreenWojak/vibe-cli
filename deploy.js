@@ -4,6 +4,8 @@
 import { Child, mergeConfig } from './util.js'
 import dotenv from 'dotenv'
 import fs from 'fs';
+import { createWalletClient, createPublicClient, http, getContractAddress, toBytes } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 
 const vibeFilePath = `.vibe`
 
@@ -17,32 +19,24 @@ const network = config.chains[networkName]
 const deployments = {}
 
 export async function main() {
-  config.compile?.forEach(c => {
-    c.contracts.forEach(contract => {
-      const path = `${config.paths.out}/${c.fileName}.sol/${contract}.json`
-      if (fs.existsSync(path)) {
-        for (let i = 0; i < config.paths.dest.length; i++) {
-          if (fs.existsSync(`${config.paths.dest[i]}/${contract}.json`)) {
-            const destJson = JSON.parse(fs.readFileSync(`${config.paths.dest[i]}/${contract}.json`))
-            const json = JSON.parse(fs.readFileSync(path))
-            if (JSON.stringify(destJson.abi) === JSON.stringify(json.abi)) {
-              console.log(`Skipping ${contract} for ${config.paths.dest[i]}`)
-              continue
-            }
-          }
-          console.log(`Copying ${contract} to ${config.paths.dest[i]}`)
-          fs.copyFileSync(path, `${config.paths.dest[i]}/${contract}.json`)
-        }
-      }
-    })
+  const client = createWalletClient({
+    chain: network,
+    transport: http(),
   })
+
+  const publicClient = createPublicClient({
+    chain: network,
+    transport: http(),
+  })
+
+  await (await import("./compile.js")).main()
 
   if (!config.deploy) return
 
   for (const c of config.deploy[networkName]) {
     for (const contract of c.contracts) {
       try {
-        await deploy(c, contract)
+        await deploy(c, contract, client, publicClient)
       } catch (error) {
         console.error(`Failed to deploy ${contract.name}:`, error)
         process.exit(1)
@@ -51,72 +45,62 @@ export async function main() {
   }
 }
 
-async function deploy(c, contract) {
+async function deploy(c, contract, client, publicClient) {
   console.log(`Deploying ${contract.name} to ${networkName}`)
-  const path = `${config.paths.src}/${c.fileName}.sol:${contract.name}`
-  console.log(`Path: ${path}`)
-  let args = contract.args ? Object.entries(contract.args).map(([key, val]) => {
+  const path = `${config.paths.out}/${c.fileName}.sol/${contract.name}.json`
+  const json = JSON.parse(fs.readFileSync(path))
+  const abi = json.abi
+  const bytecode = abi.bytecode
+  const account = privateKeyToAccount(network.privateKey)
+
+  const nonce = await publicClient.getTransactionCount({ address: account.address })
+  console.log(`Nonce: ${nonce}`)
+
+  const args = contract.args ? Object.entries(contract.args).map(([key, val]) => {
     const argValue = typeof val === 'string' && val.startsWith('$') ? deployments[val.slice(1)] : val
-    return `"${argValue}"`
-  }).join(' ') : ''
+    return argValue
+  }) : []
 
-  console.dir(network)
+  const hash = await client.deployContract({ abi, bytecode, args, account, deploymentType: 'create2', nonce })
 
-  const command = `forge create --rpc-url ${network?.rpcUrls.default?.http ?? network?.rpcUrls[0] } --private-key ${network.privateKey} ${path} ${args ? '--constructor-args ' + args : ''} --via-ir --priority-gas-price 1`;
+  const reciept = await publicClient.waitForTransactionReceipt({ hash })
+  const deploymentAddress = reciept.contractAddress
 
-  const child = new Child('deploy', command)
   return new Promise((resolve, reject) => {
-    child.onData = (data) => {
-      console.log(data.toString())
-      const match = data.toString().match(/Deployed to: (0x[0-9a-fA-F]{40})/)
-      if (match) {
-        const deployment = match[1];
-
-        try {
-          let vibeContent;
-          // Check if .vibe exists, if not, it will be created later
-          if (fs.existsSync(vibeFilePath)) {
-            vibeContent = fs.readFileSync(vibeFilePath, 'utf8')
-            //console.log(`Original content: ${vibeContent}`);
-          } else {
-            console.log(`File not found. A new file will be created.`)
-            vibeContent = ""
-          }
-      
-          // Construct the key with network name
-          const entryKey = `${networkName}.${contract.name}`
-          const regexPattern = new RegExp(`^${entryKey}=0x[0-9a-fA-F]{40}$`, "gm") // 'gm' for global and multiline
-      
-          if (regexPattern.test(vibeContent)) {
-            // Pattern exists, update it (replace the old deployment address with the new one)
-            const updatedVibeContent = vibeContent.replace(regexPattern, `${entryKey}=${deployment}`)
-            fs.writeFileSync(vibeFilePath, updatedVibeContent)
-            console.log('Entry updated successfully.')
-          } else {
-            // Pattern does not exist, append it
-            const updatedVibeContent = `${vibeContent.trim()}\n${entryKey}=${deployment}`
-            fs.writeFileSync(vibeFilePath, updatedVibeContent)
-            console.log('New entry added successfully.')
-          }
-        } catch (error) {
-          console.error(`Failed to update or create the file: ${error}`)
-        }
-
-        deployments[contract.name] = deployment
-        console.log(`Deployed ${contract.name} to ${networkName} at ${deployment}`)
-        updateDeploymentFiles(c, contract.name, deployment)
-        resolve();
+    try {
+      let vibeContent;
+      // Check if .vibe exists, if not, it will be created later
+      if (fs.existsSync(vibeFilePath)) {
+        vibeContent = fs.readFileSync(vibeFilePath, 'utf8')
+        //console.log(`Original content: ${vibeContent}`);
+      } else {
+        console.log(`File not found. A new file will be created.`)
+        vibeContent = ""
       }
-    };
-    child.onError = (err) => {
-      console.error(`Error deploying ${contract.name}:`, err.toString())
-      reject(new Error(`Deployment failed for ${contract.name}`))
-    };
-    child.onExit = (code) => {
-      if (code !== 0) {
-        reject(new Error(`Deployment process exited with code ${code} for ${contract.name}`))
+
+      // Construct the key with network name
+      const entryKey = `${networkName}.${contract.name}`
+      const regexPattern = new RegExp(`^${entryKey}=0x[0-9a-fA-F]{40}$`, "gm") // 'gm' for global and multiline
+
+      if (regexPattern.test(vibeContent)) {
+        // Pattern exists, update it (replace the old deployment address with the new one)
+        const updatedVibeContent = vibeContent.replace(regexPattern, `${entryKey}=${deploymentAddress}`)
+        fs.writeFileSync(vibeFilePath, updatedVibeContent)
+        console.log('Entry updated successfully.')
+      } else {
+        // Pattern does not exist, append it
+        const updatedVibeContent = `${vibeContent.trim()}\n${entryKey}=${deploymentAddress}`
+        fs.writeFileSync(vibeFilePath, updatedVibeContent)
+        console.log('New entry added successfully.')
       }
-    };
+    } catch (error) {
+      console.error(`Failed to update or create the file: ${error}`)
+    }
+
+    deployments[contract.name] = deploymentAddress
+    console.log(`Deployed ${contract.name} to ${networkName} at ${deploymentAddress}`)
+    updateDeploymentFiles(c, contract.name, deploymentAddress)
+    resolve();
   });
 }
 

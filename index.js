@@ -25,6 +25,7 @@ if (cmd === "version") {
   console.log("vibe run <network> <command> [args]  - Run a Solidity script on a network")
   console.log("vibe check <network>                 - Runs tests on a network")
   console.log("vibe supply <network> <address>      - Supply an address with tokens")
+  console.log("vibe curl <method> [args]            - Run an RPC method on the forked network")
   console.log("vibe version                         - Print the version of the Vibe CLI")
 
   console.log("For more information, check the readme at https://github.com/GreenWojak/vibe-cli")
@@ -80,11 +81,6 @@ if (cmd === "version") {
                 console.log(data.toString())
               }
 
-              // // If the command is successful, run the main function
-              // child.onClose = async (code) => {
-              //   await main();
-              // }
-
               // If the command is successful, run "forge install"
               child.onClose = async (code) => {
                 if (code === 0) {
@@ -110,7 +106,7 @@ if (cmd === "version") {
         }
       } 
       else {
-        console.log("Foundry is required to run this command. Foundry forge and try again.");
+        console.log("Foundry is required to run this command. Install Foundry to continue.")
       }
     }
   }
@@ -134,6 +130,8 @@ async function main() {
     await (await import("./run.js")).main();
   } else if (cmd === "supply") {
     await (await import("./supply.js")).main();
+  } else if (cmd === "curl") {
+    await (await import("./curl.js")).main();
   } else {
     console.log("Invalid command. Please type \"vibe help\" to see the available commands.")
   }

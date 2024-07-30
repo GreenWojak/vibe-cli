@@ -25,6 +25,11 @@ const flags = process.argv
 let forkChild = null
 
 export async function main() {
+  if (!network) {
+    console.error(`Network ${networkName} not found in config`)
+    process.exit(1)
+  }
+
   if (network.rpcUrls.default?.http || network.rpcUrls[0]) {
     startFork()
   } else {
@@ -38,8 +43,17 @@ const startFork = () => {
   const rpcUrl = network?.rpcUrls.default?.http ?? network?.rpcUrls[0]
   const slotsInEpoch = flags.includes('--slots-in-an-epoch') ? '' : '--slots-in-an-epoch 1'
   const balance = flags.includes('--balance') ? '' : '--balance 10000000000000000000'
-  forkChild = new Child('fork', `anvil --host 0.0.0.0 --fork-url ${rpcUrl} --chain-id ${localhost.id} ${balance} ${slotsInEpoch} ${blockNr} ${flags}`, { respawn: false })
 
+  forkChild = new Child('fork', `anvil --host 0.0.0.0 --fork-url ${rpcUrl} --chain-id ${localhost.id} ${balance} ${slotsInEpoch} ${blockNr} ${flags}`, { respawn: false, onData: async (data) => {
+    if (!silent) console.log(data.toString())
+      if (data.toString().includes('Listening on 0.0.0.0:' + config.port)) {
+        console.log(`Fork started!`)
+        if (silent) await curl('anvil_setLoggingEnabled', 'false')
+        await doTransfers()
+      }
+    }
+  })
+  
   const terminateForkChild = () => {
     if (forkChild) {
       forkChild.kill()
@@ -69,21 +83,13 @@ const startFork = () => {
     console.error(code)
   }
 
-  forkChild.onData = async (data) => {
-    if (!silent) console.log(data.toString())
-    if (data.toString().includes('Listening on 0.0.0.0:' + config.port)) {
-      console.log(`Fork started!`)
-      if (silent) await curl('anvil_setLoggingEnabled', 'false')
-      await doTransfers()
-    }
-  }
-
   const doTransfers = async () => {
     if (doDeploy) {
       console.log(`Deploying contracts to ${networkName}...`)
       process.argv[3] = 'localhost'
-      await (await import("./create2.js")).main()
+      await (await import("./deploy.js")).main()
     }
+
     if (network.supplyAddresses && network.supplyAddresses[0]) {
       const supply = await import("./supply.js")
       const child2 = new Child('impersonate', `cast rpc anvil_impersonateAccount 0x70997970C51812dc3A010C7d01b50e0d17dc79C8`)
@@ -114,6 +120,7 @@ const startFork = () => {
         console.log(`Transfers for ${address} complete!`)
       }
     }
+
     if (doDeploy) {
       process.argv[3] = 'localhost'
       network.forkScripts?.forEach(async (script) =>	{
