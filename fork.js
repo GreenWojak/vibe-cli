@@ -73,14 +73,11 @@ const startFork = () => {
   });
 
   forkChild.onClose = (code) => {
-    if (code !== 0) {
-      console.log(`Failed to start fork`)
-      process.exit(code)
-    }
+    process.exit(code.toString())
   }
 
   forkChild.onError = (code) => {
-    console.error(code)
+    console.error(code.toString())
   }
 
   const doTransfers = async () => {

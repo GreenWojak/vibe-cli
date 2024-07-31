@@ -50,18 +50,16 @@ async function deploy(c, contract, client, publicClient) {
   const path = `${config.paths.out}/${c.fileName}.sol/${contract.name}.json`
   const json = JSON.parse(fs.readFileSync(path))
   const abi = json.abi
-  const bytecode = abi.bytecode
   const account = privateKeyToAccount(network.privateKey)
 
   const nonce = await publicClient.getTransactionCount({ address: account.address })
-  console.log(`Nonce: ${nonce}`)
 
   const args = contract.args ? Object.entries(contract.args).map(([key, val]) => {
     const argValue = typeof val === 'string' && val.startsWith('$') ? deployments[val.slice(1)] : val
     return argValue
   }) : []
 
-  const hash = await client.deployContract({ abi, bytecode, args, account, deploymentType: 'create2', nonce })
+  const hash = await client.deployContract({ abi, bytecode: json.bytecode?.object ?? abi.bytecode, args, account, deploymentType: 'create2', nonce })
 
   const reciept = await publicClient.waitForTransactionReceipt({ hash })
   const deploymentAddress = reciept.contractAddress
