@@ -2,7 +2,6 @@
 // @ts-nocheck
 
 import { Child, mergeConfig } from './util.js'
-import dotenv from 'dotenv'
 import fs from 'fs';
 import { createWalletClient, createPublicClient, http, getContractAddress, toBytes } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -10,8 +9,6 @@ import { privateKeyToAccount } from 'viem/accounts'
 const vibeFilePath = `.vibe`
 
 let config = await mergeConfig()
-
-dotenv.config()
 
 const networkName = process.argv[3]
 const network = config.chains[networkName]
@@ -21,12 +18,12 @@ const deployments = {}
 export async function main() {
   const client = createWalletClient({
     chain: network,
-    transport: http(),
+    transport: network.rpcUrls.default?.http ? http() : http(network.rpcUrls[0]),
   })
 
   const publicClient = createPublicClient({
     chain: network,
-    transport: http(),
+    transport: network.rpcUrls.default?.http ? http() : http(network.rpcUrls[0]),
   })
 
   await (await import("./compile.js")).main()

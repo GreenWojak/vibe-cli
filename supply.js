@@ -2,11 +2,8 @@
 // @ts-nocheck
 
 import { Child, mergeConfig, curl } from './util.js'
-import dotenv from 'dotenv'
 
 const config = await mergeConfig()
-
-dotenv.config()
 
 let network
 let address

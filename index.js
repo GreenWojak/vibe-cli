@@ -5,6 +5,8 @@ import inquirer from "inquirer";
 import { Child } from './util.js'
 import { exec } from "child_process";
 import { createRequire } from "module";
+import fs from "fs";
+
 const p = createRequire(import.meta.url)("./package.json");
 
 // Get first argument
@@ -39,7 +41,7 @@ if (cmd === "version") {
   child.onClose = async (code) => {
     // Run the main function if Foundry is installed
     if (code === 0) {
-      await main();
+      await installDependencies()
     }
     // If the command fails, Foundry is not installed
     else {
@@ -84,19 +86,7 @@ if (cmd === "version") {
               // If the command is successful, run "forge install"
               child.onClose = async (code) => {
                 if (code === 0) {
-                  const child = new Child('install', 'forge install')
-
-                  child.onData = (data) => {
-                    console.log(data.toString())
-                  }
-
-                  child.onClose = async (code) => {
-                    if (code === 0) {
-                      await main();
-                    } else {
-                      console.log("Failed to install Foundry. Please try again.")
-                    }
-                  }
+                  await installDependencies()
                 } else {
                   console.log("Failed to install Foundry. Please try again.")
                 }
@@ -113,6 +103,29 @@ if (cmd === "version") {
 } else {
   console.log("Hello via Vibe CLI!");
   console.log("Please use \"vibe help\" to see the available commands.");
+}
+
+async function installDependencies() {
+  if (!fs.existsSync(`${process.cwd()}/vibe.config.js`)) await main()
+  else {
+    const child = new Child('install', 'forge install')
+
+    child.onData = (data) => {
+      console.log(data.toString())
+    }
+
+    child.onError = (error) => {
+      console.error(error.toString())
+    }
+
+    child.onClose = async (code) => {
+      if (code === 0) {
+        await main();
+      } else {
+        console.log("Failed to install dependencies. Please try again.")
+      }
+    }
+  }
 }
 
 async function main() {

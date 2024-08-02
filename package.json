@@ -1,6 +1,6 @@
 {
   "name": "vibe-cli",
-  "version": "0.11.3",
+  "version": "0.11.6",
   "module": "index.js",
   "type": "module",
   "devDependencies": {
@@ -13,7 +13,6 @@
     "vibe": "./index.js"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
     "inquirer": "^9.2.19",
     "viem": "^2.18.4"
   }

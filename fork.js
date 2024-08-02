@@ -2,11 +2,8 @@
 // @ts-nocheck
 
 import { Child, mergeConfig, curl } from './util.js'
-import dotenv from 'dotenv'
 import { spawn } from 'child_process';
 import inquirer from 'inquirer';
-
-dotenv.config()
 
 let config = await mergeConfig()
 
