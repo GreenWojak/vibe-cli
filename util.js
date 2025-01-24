@@ -4,6 +4,7 @@
 import { spawn } from 'child_process'
 import { default as defaultConfig } from './config.js'
 import fs from 'fs'
+import path from 'path'
 
 export class Child {
   child = null
@@ -21,7 +22,7 @@ export class Child {
     this.command = command
     this.args = options.args
     this.detached = options.detached
-    this.env = options.env
+    this.env = options.env ? { ...process.env, ...options.env } : process.env
     this.onData = options.onData
     this.onClose = options.onClose
     this.onError = options.onError
@@ -29,7 +30,15 @@ export class Child {
   }
 
   respawn(respawn) {
-    this.child = spawn(this.command, this.args, { shell: true, detached: this.detached, env: this.env})
+    // Fix for broken behavior under Git Bash
+    if (process.env.SHELL && process.env.SHELL.endsWith('bash.exe')) {
+      // Run every command in bash -c
+      this.args = this.args || []
+      const bashCommand = `${this.command} ${this.args.join(' ')}`;
+      this.child = spawn('bash', ['-c', bashCommand], { shell: false, detached: this.detached, env: this.env})
+    } else {
+      this.child = spawn(this.command, this.args, { shell: true, detached: this.detached, env: this.env})
+    }
 
     this.child.stdout.on('data', (data) => {
       if (this.onData != null) this.onData(data)
@@ -47,6 +56,24 @@ export class Child {
 
   kill() { 
     this.child.kill() 
+  }
+}
+
+export function deleteDirectory(directoryPath) {
+  // Fix change path to windows format on git bash
+  if (process.env.SHELL && process.env.SHELL.endsWith('bash.exe') && directoryPath.startsWith('/')) {
+    let splitDirectoryPath = directoryPath.split('/')
+    if (splitDirectoryPath[1] && splitDirectoryPath[1].length === 1) { // Check if it's a single letter
+      directoryPath = `${splitDirectoryPath[1]}:\\${splitDirectoryPath.slice(2).join(path.sep)}`;
+    }
+  }
+
+  directoryPath = path.resolve(directoryPath)
+  if (fs.existsSync(directoryPath)) {
+    fs.rmSync(directoryPath, { recursive: true, force: true });
+    console.log(`Directory "${directoryPath}" has been deleted.`);
+  } else {
+    console.log(`Directory "${directoryPath}" does not exist.`);
   }
 }
 

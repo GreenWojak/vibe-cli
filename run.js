@@ -65,7 +65,7 @@ export async function main() {
       }
     }
     child.onError = (error) => {
-      console.error(`Error: ${error}`)
+      console.error(error.toString())
       reject()
     }
   })

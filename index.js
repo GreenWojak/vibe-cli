@@ -2,12 +2,15 @@
 // @ts-nocheck
 
 import inquirer from "inquirer";
-import { Child } from './util.js'
+import { Child, deleteDirectory } from './util.js'
 import { exec } from "child_process";
 import { createRequire } from "module";
 import fs from "fs";
 
 const p = createRequire(import.meta.url)("./package.json");
+
+// Used for tracking forge installation
+let sourceCommand = ""
 
 // Get first argument
 const cmd = process.argv[2]
@@ -28,6 +31,7 @@ if (cmd === "version") {
   console.log("vibe check <network>                 - Runs tests on a network")
   console.log("vibe supply <network> <address>      - Supply an address with tokens")
   console.log("vibe curl <method> [args]            - Run an RPC method on the forked network")
+  console.log("vibe refresh                         - Updates dest files with addresses in .vibe")
   console.log("vibe version                         - Print the version of the Vibe CLI")
 
   console.log("For more information, check the readme at https://github.com/GreenWojak/vibe-cli")
@@ -57,41 +61,59 @@ if (cmd === "version") {
       // If the user wants to install Foundry, run the install script at "https://foundry.paradigm.xyz"
       if (install) {
         console.log("Installing Foundry...");
-        const child = new Child('install', 'curl -L https://foundry.paradigm.xyz | bash')
 
-        let sourceCommand = ""
+        // Fix for foundry to detect git bash properly
+        const shellPath = process.env.SHELL.replace(/\.exe$/, '');
+        // We add an additional print to get foundry's path to avoid having to re-open the terminal
+        const child = new Child('install', '(curl -sSf -L https://foundry.paradigm.xyz && echo echo \"FOUNDRY_NEW_PATH:\\${FOUNDRY_BIN_DIR}\") | bash', {respawn: false, env: { SHELL: shellPath }})
+
+        let foundryPath = ""
 
         child.onError = (error) => {
-          console.error(error)
+          console.error(error.toString())
         }
 
         child.onData = (data) => {
-          // Grab detected profile source command from installer output
+          // Grab instructions to finalize 
           if (data.toString().includes("start a new terminal")) {
             sourceCommand = data.toString().match(/source [^']+/)[0]
+          }
+
+          // Grab the new path
+          if (data.toString().includes("FOUNDRY_NEW_PATH")) {
+            foundryPath = data.toString().match(/FOUNDRY_NEW_PATH:(.+)/)[1]
+          } else {
+            console.log(data.toString())
           }
         }
         child.onClose = async (code) => {
           // If install script is successful and source command is found, source current profile
-          if (code === 0 && sourceCommand) {
-            const child = new Child('install', sourceCommand)
+          if (code === 0 && foundryPath) {
+            // Clean previous foundry install folders
+            deleteDirectory(`${foundryPath}/../versions`)
 
+            process.env.PATH += `:${foundryPath}`
+            const child = new Child('install', 'foundryup', {respawn: false, env: { SHELL: shellPath}})
+
+            child.onError = (error) => {
+              console.error(error.toString())
+            }
+
+            child.onData = (data) => {
+              console.log(data.toString())
+            }
+
+            // If the command is successful, run "forge install"
             child.onClose = async (code) => {
-              const child = new Child('install', 'foundryup')
-
-              child.onData = (data) => {
-                console.log(data.toString())
-              }
-
-              // If the command is successful, run "forge install"
-              child.onClose = async (code) => {
-                if (code === 0) {
-                  await installDependencies()
-                } else {
-                  console.log("Failed to install Foundry. Please try again.")
-                }
+              if (code === 0) {
+                await installDependencies()
+              } else {
+                console.log("Failed to install Foundry. Please try again.")
               }
             }
+          } else {
+            console.error("Failed to install foundryup.");
+
           }
         }
       } 
@@ -145,7 +167,14 @@ async function main() {
     await (await import("./supply.js")).main();
   } else if (cmd === "curl") {
     await (await import("./curl.js")).main();
+  } else if (cmd === "refresh") {
+    await (await import("./refresh.js")).main();
   } else {
     console.log("Invalid command. Please type \"vibe help\" to see the available commands.")
+  }
+  if (sourceCommand) {
+    console.warn("\n")
+    console.warn("Your terminal session is out of date as foundry was just installed!")
+    console.warn(`Run '${sourceCommand}' or start a new terminal session.`)
   }
 }

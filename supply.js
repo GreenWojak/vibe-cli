@@ -27,7 +27,7 @@ const transfer = (address) => {
       console.log(data.toString())
     }
     child.onError = (error) => {
-      console.error(error)
+      console.error(error.toString())
       reject(error)
     }
     child.onClose = async (code) => {
@@ -77,7 +77,7 @@ const tokenTransfer = async (address, transferIndex) => {
           console.log(data.toString())
         }
         child.onError = (error) => {
-          console.error(error)
+          console.error(error.toString())
           reject(error)
         }
         child.onClose = async (code) => {

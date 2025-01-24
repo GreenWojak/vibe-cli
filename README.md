@@ -107,6 +107,14 @@ vibe curl <method> [args]
 
 This command will run the RPC method specified in the command with the provided arguments on the currently forked network (e.g. `vibe curl evm_setIntervalMining 2`).
 
+### Refreshing deployment files
+
+```bash
+vibe refresh
+```
+
+This command will Update all deployment files with the addresses found in the .vibe file.
+
 ### vibe.config.js Structure
 
 > [!NOTE]

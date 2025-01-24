@@ -100,8 +100,8 @@ const startFork = () => {
         else console.log(`Impersonated account`)
       }
 
-      child2.onError = (code) => { 
-        console.error(code)
+      child2.onError = (error) => { 
+        console.error(error.toString())
       }
 
       process.argv[3] = networkName
